@@ -1,0 +1,828 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>House Chores</title>
+
+<style>
+:root{
+  --bg:#eaf2ff;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --line:#e2e8f0;
+  --accent:#2563eb;
+  --danger:#dc2626;
+  --warn:#d97706;
+  --ok:#0891b2;
+  --radius:16px;
+  --shadow:0 12px 30px rgba(15,23,42,.08);
+
+  --soft-due:#fff1f2;
+  --soft-soon:#fff7ed;
+  --soft-ok:#ecfeff;
+  --soft-shop:#f8fafc;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#eaf2ff,#f8fbff);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui;
+}
+.wrap{max-width:950px;margin:auto;padding:18px}
+h1{margin:0;font-size:22px;font-weight:900}
+.small{font-size:13px;color:var(--muted)}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.tabs{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tab{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:900;cursor:pointer}
+.tab.active{background:var(--accent);color:#fff;border-color:transparent}
+
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin:14px 0;box-shadow:var(--shadow)}
+h2{margin:0 0 10px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:220px}
+
+input,select,button{
+  font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+  background:#fff;color:var(--text)
+}
+button{background:var(--accent);color:#fff;border:none;font-weight:900;cursor:pointer}
+button:active{transform:translateY(1px)}
+.btn-ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+.btn-danger{background:#fff;color:var(--danger);border:1px solid rgba(220,38,38,.25);font-weight:900}
+.btn-warn{background:#fff;color:var(--warn);border:1px solid rgba(217,119,6,.25);font-weight:900}
+
+/* bigger due badge */
+.pill{
+  display:inline-block;padding:10px 14px;border-radius:999px;font-size:15px;font-weight:950;
+  border:1px solid var(--line);background:#f8fafc
+}
+.pill.ok{color:var(--ok)}
+.pill.warn{color:var(--warn)}
+.pill.due{color:var(--danger)}
+
+.mate{
+  display:inline-block;padding:8px 12px;border-radius:999px;background:#f8fafc;border:1px solid var(--line);
+  margin:6px 6px 0 0;font-weight:800
+}
+
+/* chore cards */
+.chore{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  margin-top:12px;
+  background:#fff;
+}
+.chore.bg-due{background:var(--soft-due);border-color:rgba(220,38,38,.20)}
+.chore.bg-soon{background:var(--soft-soon);border-color:rgba(217,119,6,.20)}
+.chore.bg-ok{background:var(--soft-ok);border-color:rgba(8,145,178,.18)}
+
+.icon{
+  width:34px;height:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:#ffffff;border:1px solid rgba(37,99,235,.18);font-size:18px;flex:0 0 34px;
+}
+
+/* ✅ Two-row layout:
+   Row 1: icon + chore name | assignee
+   Row 2: due pill          | complete button
+*/
+.chore-rows{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap:10px 12px;
+  align-items:center;
+}
+
+.chore-left-top{
+  display:flex;align-items:center;gap:10px;min-width:0;
+}
+.chore-left-top .name{
+  font-size:18px;font-weight:950;line-height:1.15;overflow-wrap:anywhere;
+}
+
+.assignee{
+  text-align:right;
+  max-width:240px;
+}
+.assignee .label{
+  font-size:12px;color:var(--muted);font-weight:800;line-height:1.1;
+}
+.assignee .name{
+  font-size:18px;font-weight:950;line-height:1.15;overflow-wrap:anywhere;
+}
+
+.chore-left-bottom{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.chore-right-bottom{
+  justify-self:end;
+}
+
+.chore-actions{
+  display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;
+}
+.chore-actions button{min-width:110px}
+
+/* mobile: stack columns but still 2 rows */
+@media (max-width: 460px){
+  .chore-rows{grid-template-columns: 1fr;}
+  .assignee{text-align:left;max-width:100%}
+  .chore-right-bottom{justify-self:start}
+  .chore-actions{justify-content:flex-start}
+}
+
+/* shopping small cards */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+.shopcard{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--soft-shop)}
+.shopcard.needed{background:var(--soft-due);border-color:rgba(220,38,38,.25)}
+.shop-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.shop-name{font-weight:950;display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}
+.shop-name span:last-child{overflow-wrap:anywhere}
+.shop-next{text-align:right;max-width:50%}
+.shop-next .label{font-size:11px;color:var(--muted);font-weight:900}
+.shop-next .name{font-size:16px;font-weight:950;overflow-wrap:anywhere}
+.shop-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.shop-actions button{padding:8px 10px;font-size:14px;border-radius:12px}
+
+/* misc */
+.hidden{display:none}
+.item{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff;margin-top:10px}
+.item-title{font-weight:950;display:flex;align-items:center;gap:10px}
+.item-meta{margin-top:6px}
+hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
+.kpi{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.kpi .box{flex:1;min-width:220px;border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
+.kpi .box .t{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.12em}
+.kpi .box .v{font-size:26px;font-weight:950;margin-top:6px}
+.kpi .box .s{font-size:13px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <h1>House Chores</h1>
+      <div class="small">Chores + shopping together. Settings tucked away.</div>
+    </div>
+    <div class="tabs">
+      <div id="tabHome" class="tab active" onclick="showScreen('home')">Home</div>
+      <div id="tabStats" class="tab" onclick="showScreen('stats')">Stats</div>
+      <div id="tabSettings" class="tab" onclick="showScreen('settings')">Settings</div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="screenHome">
+    <div class="card">
+      <h2>Chores</h2>
+      <div class="small">Tap <b>Complete</b> to rotate and schedule the next due date.</div>
+      <div id="choresList"></div>
+
+      <hr class="sep">
+
+      <h2>Shopping</h2>
+      <div class="small">Smaller cards. Mark <b>Need</b> to turn red. Tap <b>Bought</b> to rotate.</div>
+      <div id="shopGrid" class="shop-grid"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="screenStats" class="hidden">
+    <div class="card">
+      <h2>Stats</h2>
+      <div class="small">Counts are based on completions logged when someone taps Complete / Bought.</div>
+
+      <div class="kpi">
+        <div class="box">
+          <div class="t">Chores completed (7 days)</div>
+          <div id="kpiChores7" class="v">0</div>
+          <div id="kpiChores7s" class="s"></div>
+        </div>
+        <div class="box">
+          <div class="t">Shopping bought (7 days)</div>
+          <div id="kpiShop7" class="v">0</div>
+          <div id="kpiShop7s" class="s"></div>
+        </div>
+      </div>
+
+      <hr class="sep">
+
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div style="font-weight:950">Leaderboard (last 7 days)</div>
+          <div class="small">Chores + shopping combined</div>
+        </div>
+        <button class="btn-danger" onclick="clearHistory()">Clear history</button>
+      </div>
+
+      <div id="leaderboard"></div>
+
+      <hr class="sep">
+
+      <div style="font-weight:950">Recent activity</div>
+      <div class="small">Most recent first</div>
+      <div id="recentActivity" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="screenSettings" class="hidden">
+    <div class="card">
+      <h2>Housemates</h2>
+      <div class="row">
+        <input id="mateName" class="grow" placeholder="Add housemate name" />
+        <button onclick="addMate()">Add</button>
+      </div>
+      <div id="matesList"></div>
+      <div class="small" style="margin-top:8px;">Tip: deletions only exist on this Settings screen.</div>
+    </div>
+
+    <div class="card">
+      <h2>Add chore</h2>
+      <div class="row">
+        <input id="choreName" class="grow" placeholder="Chore name (Kitchen / Bathroom / Bins / etc)" />
+        <select id="choreType" onchange="toggleType()">
+          <option value="frequency">Every N days</option>
+          <option value="fixed">Fixed weekday (weekly / every 2 weeks)</option>
+        </select>
+
+        <span id="freqWrap" class="row" style="gap:8px">
+          <input id="freqDays" type="number" min="1" value="7" style="width:90px">
+          <span class="small">days</span>
+        </span>
+
+        <span id="fixedWrap" class="row" style="gap:8px; display:none">
+          <select id="weekday">
+            <option value="1">Mon</option>
+            <option value="2">Tue</option>
+            <option value="3">Wed</option>
+            <option value="4">Thu</option>
+            <option value="5">Fri</option>
+            <option value="6">Sat</option>
+            <option value="0">Sun</option>
+          </select>
+          <select id="intervalWeeks">
+            <option value="1">Every week</option>
+            <option value="2">Every 2 weeks</option>
+          </select>
+          <input id="anchor" type="date" />
+        </span>
+
+        <button onclick="addChore()">Add</button>
+      </div>
+
+      <div class="small" style="margin-top:10px;">
+        <div style="font-weight:950; color:#334155; margin-bottom:6px;">Eligible people for this chore</div>
+        <div id="eligiblePicker"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add shopping item</h2>
+      <div class="row">
+        <input id="shopName" class="grow" placeholder="Item (washing liquid, toilet paper, etc)" />
+        <button onclick="addShopItem()">Add</button>
+      </div>
+      <div class="small" style="margin-top:8px;">Select who is eligible to buy this item. No due dates.</div>
+      <div class="small" style="font-weight:950;color:#334155;margin-top:10px;">Eligible people for this item</div>
+      <div id="shopEligiblePicker" class="small"></div>
+
+      <div class="small" style="margin-top:10px;">
+        Quick add:
+        <button class="btn-ghost" onclick="quickAddShopping()">Add common items</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Manage chores</h2>
+      <div class="small">Rotate/delete chores here.</div>
+      <div id="manageChores"></div>
+    </div>
+
+    <div class="card">
+      <h2>Manage shopping</h2>
+      <div class="small">Rotate/delete shopping items here.</div>
+      <div id="manageShopping"></div>
+
+      <hr class="sep">
+      <button class="btn-danger" onclick="resetAll()">Reset everything</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ------------------ Data ------------------ */
+const KEY = "house_app_v5";
+function safeId(){
+  return (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+}
+function load(){
+  return JSON.parse(localStorage.getItem(KEY) || '{"mates":[],"chores":[],"shop":[],"history":[]}');
+}
+function save(s){
+  localStorage.setItem(KEY, JSON.stringify(s));
+  renderAll();
+}
+
+/* ------------------ Screens ------------------ */
+function showScreen(which){
+  const screens = {
+    home: document.getElementById("screenHome"),
+    stats: document.getElementById("screenStats"),
+    settings: document.getElementById("screenSettings"),
+  };
+  const tabs = {
+    home: document.getElementById("tabHome"),
+    stats: document.getElementById("tabStats"),
+    settings: document.getElementById("tabSettings"),
+  };
+  Object.keys(screens).forEach(k => screens[k].classList.add("hidden"));
+  Object.keys(tabs).forEach(k => tabs[k].classList.remove("active"));
+  screens[which].classList.remove("hidden");
+  tabs[which].classList.add("active");
+}
+
+/* ------------------ Icons ------------------ */
+const ICONS = [
+  { keys: ["kitchen"], icon: "🍽️" },
+  { keys: ["stairs","stair"], icon: "🪜" },
+  { keys: ["black bin","general waste"], icon: "🗑️" },
+  { keys: ["recycling","recycle"], icon: "♻️" },
+  { keys: ["bin","bins","rubbish","trash","garbage"], icon: "🗑️" },
+  { keys: ["bathroom","bath","toilet","loo","shower"], icon: "🚿" },
+  { keys: ["oven"], icon: "🔥" },
+  { keys: ["hallway","hall"], icon: "🚪" },
+  { keys: ["dining","dining room"], icon: "🍽️" },
+  { keys: ["washing liquid","laundry","detergent"], icon: "🧴" },
+  { keys: ["toilet paper","loo roll","tp"], icon: "🧻" },
+  { keys: ["dishwasher","tablets"], icon: "🫧" },
+  { keys: ["sponges","sponge"], icon: "🧽" },
+];
+function startsWithEmoji(str){
+  if(!str) return false;
+  const ch = str.trim().charAt(0);
+  return !(/[a-z0-9]/i.test(ch));
+}
+function iconFor(name){
+  const n = (name || "").trim();
+  if(!n) return "🧹";
+  if(startsWithEmoji(n)) return n.split(/\s+/)[0];
+  const lower = n.toLowerCase();
+  for(const rule of ICONS){
+    if(rule.keys.some(k => lower.includes(k))) return rule.icon;
+  }
+  return "🧹";
+}
+
+/* ------------------ Scheduling helpers ------------------ */
+function computeNextFromAnchor(anchorStr, weeks){
+  const parts = anchorStr.split("-").map(Number);
+  const a = new Date(parts[0], parts[1]-1, parts[2], 8, 0, 0, 0);
+  const now = new Date();
+  while(a.getTime() < now.getTime()){
+    a.setDate(a.getDate() + weeks * 7);
+  }
+  return a.getTime();
+}
+function dueTextAndClass(ms){
+  const d = Math.round((ms - Date.now()) / 86400000);
+  if(d === 0) return ["Due today", "due", "bg-due"];
+  if(d === 1) return ["Due tomorrow", "warn", "bg-soon"];
+  if(d === 2) return ["Due in 2 days", "warn", "bg-soon"];
+  if(d > 2) return [`Due in ${d} days`, "ok", "bg-ok"];
+  const od = Math.abs(d);
+  return [od === 1 ? "Overdue by 1 day" : `Overdue by ${od} days`, "due", "bg-due"];
+}
+function withinDays(ts, days){ return ts >= (Date.now() - days*86400000); }
+
+/* ------------------ Eligibility pickers ------------------ */
+function renderEligiblePicker(){
+  const s = load();
+  const picker = document.getElementById("eligiblePicker");
+  picker.innerHTML = s.mates.length
+    ? s.mates.map((m, idx) => `
+        <label style="display:inline-flex;align-items:center;gap:8px;margin-right:14px;margin-top:6px;">
+          <input type="checkbox" class="eligibleMate" value="${idx}" checked />
+          <span style="font-weight:850;color:#0f172a;">${m}</span>
+        </label>
+      `).join("")
+    : `<span class="small">Add housemates first.</span>`;
+}
+function renderShopEligiblePicker(){
+  const s = load();
+  const picker = document.getElementById("shopEligiblePicker");
+  picker.innerHTML = s.mates.length
+    ? s.mates.map((m, idx) => `
+        <label style="display:inline-flex;align-items:center;gap:8px;margin-right:14px;margin-top:6px;">
+          <input type="checkbox" class="shopEligibleMate" value="${idx}" checked />
+          <span style="font-weight:850;color:#0f172a;">${m}</span>
+        </label>
+      `).join("")
+    : `<span class="small">Add housemates first.</span>`;
+}
+function getEligibleIndexes(selector){
+  return Array.from(document.querySelectorAll(selector + ":checked")).map(x => Number(x.value));
+}
+
+/* ------------------ Housemates ------------------ */
+function addMate(){
+  const input = document.getElementById("mateName");
+  const name = (input.value || "").trim();
+  if(!name) return;
+  const s = load();
+  if(s.mates.includes(name)) return alert("Already added.");
+  s.mates.push(name);
+  input.value = "";
+  save(s);
+}
+function removeMate(idx){
+  const s = load();
+  const name = s.mates[idx];
+  if(!confirm(`Remove ${name}? This can affect existing rotations.`)) return;
+  s.mates.splice(idx, 1);
+
+  for(const c of s.chores){
+    c.eligible = (c.eligible || []).filter(i => i !== idx).map(i => i > idx ? i-1 : i);
+    if(c.eligible.length === 0) c.eligible = s.mates.map((_, i) => i);
+    if(c.pos >= c.eligible.length) c.pos = 0;
+    c.idx = c.eligible[c.pos] ?? 0;
+  }
+  for(const it of s.shop){
+    it.eligible = (it.eligible || []).filter(i => i !== idx).map(i => i > idx ? i-1 : i);
+    if(it.eligible.length === 0) it.eligible = s.mates.map((_, i) => i);
+    if(it.pos >= it.eligible.length) it.pos = 0;
+    it.idx = it.eligible[it.pos] ?? 0;
+  }
+  save(s);
+}
+
+/* ------------------ Rotation helper ------------------ */
+function rotateAssignee(obj){
+  const eligible = obj.eligible || [];
+  if(!eligible.length) return;
+  obj.pos = (obj.pos + 1) % eligible.length;
+  obj.idx = eligible[obj.pos];
+}
+
+/* ------------------ Chores ------------------ */
+function toggleType(){
+  const type = document.getElementById("choreType").value;
+  document.getElementById("freqWrap").style.display = (type === "frequency") ? "flex" : "none";
+  document.getElementById("fixedWrap").style.display = (type === "fixed") ? "flex" : "none";
+}
+function addChore(){
+  const s = load();
+  if(!s.mates.length) return alert("Add housemates first.");
+  const nameEl = document.getElementById("choreName");
+  const name = (nameEl.value || "").trim();
+  if(!name) return alert("Enter a chore name.");
+  const type = document.getElementById("choreType").value;
+  const eligible = getEligibleIndexes(".eligibleMate");
+  if(!eligible.length) return alert("Select at least one eligible person for this chore.");
+
+  const c = { id:safeId(), name, icon:iconFor(name), type, eligible, pos:0, idx:eligible[0] ?? 0, next:Date.now() };
+
+  if(type === "frequency"){
+    const freqDays = Number(document.getElementById("freqDays").value);
+    if(!freqDays || freqDays < 1) return alert("Frequency must be 1 day or more.");
+    c.freq = freqDays;
+    c.next = Date.now();
+  } else {
+    const weeks = Number(document.getElementById("intervalWeeks").value);
+    const anchor = document.getElementById("anchor").value;
+    if(!anchor) return alert("Choose a start date (anchor).");
+    c.weeks = weeks;
+    c.anchor = anchor;
+    c.next = computeNextFromAnchor(anchor, weeks);
+  }
+
+  s.chores.push(c);
+  nameEl.value = "";
+  save(s);
+}
+function completeChore(id){
+  const s = load();
+  const c = s.chores.find(x => x.id === id);
+  if(!c) return;
+  const who = s.mates[c.idx] ?? "—";
+  if(!confirm(`Mark "${c.name}" as completed by ${who}?`)) return;
+
+  if(c.type === "frequency"){
+    c.next = Date.now() + (c.freq || 1) * 86400000;
+  } else {
+    c.next = computeNextFromAnchor(c.anchor, c.weeks || 1);
+  }
+  s.history.unshift({ id: safeId(), ts: Date.now(), kind: "chore", who: c.idx, name: c.name });
+  rotateAssignee(c);
+  save(s);
+}
+function rotateChore(id){
+  const s = load();
+  const c = s.chores.find(x => x.id === id);
+  if(!c) return;
+  rotateAssignee(c);
+  save(s);
+}
+function deleteChore(id){
+  const s = load();
+  const c = s.chores.find(x => x.id === id);
+  if(!c) return;
+  if(!confirm(`Delete chore "${c.name}"?`)) return;
+  s.chores = s.chores.filter(x => x.id !== id);
+  save(s);
+}
+
+/* ------------------ Shopping ------------------ */
+function addShopItem(){
+  const s = load();
+  if(!s.mates.length) return alert("Add housemates first.");
+  const el = document.getElementById("shopName");
+  const name = (el.value || "").trim();
+  if(!name) return alert("Enter an item name.");
+  const eligible = getEligibleIndexes(".shopEligibleMate");
+  if(!eligible.length) return alert("Select at least one eligible person for this item.");
+
+  s.shop.push({ id:safeId(), name, icon:iconFor(name), eligible, pos:0, idx:eligible[0] ?? 0, needed:false, lastBought:null });
+  el.value = "";
+  save(s);
+}
+function toggleNeed(id){
+  const s = load();
+  const it = s.shop.find(x => x.id === id);
+  if(!it) return;
+  it.needed = !it.needed;
+  save(s);
+}
+function boughtItem(id){
+  const s = load();
+  const it = s.shop.find(x => x.id === id);
+  if(!it) return;
+
+  s.history.unshift({ id: safeId(), ts: Date.now(), kind: "shop", who: it.idx, name: it.name });
+  it.lastBought = Date.now();
+  it.needed = false;
+  rotateAssignee(it);
+  save(s);
+}
+function rotateShop(id){
+  const s = load();
+  const it = s.shop.find(x => x.id === id);
+  if(!it) return;
+  rotateAssignee(it);
+  save(s);
+}
+function deleteShop(id){
+  const s = load();
+  const it = s.shop.find(x => x.id === id);
+  if(!it) return;
+  if(!confirm(`Delete item "${it.name}"?`)) return;
+  s.shop = s.shop.filter(x => x.id !== id);
+  save(s);
+}
+function quickAddShopping(){
+  const s = load();
+  if(!s.mates.length) return alert("Add housemates first.");
+  const names = ["Washing liquid", "Toilet paper", "Dishwasher tablets", "Sponges"];
+  const allEligible = s.mates.map((_, i) => i);
+  for(const nm of names){
+    if(s.shop.some(x => x.name.toLowerCase() === nm.toLowerCase())) continue;
+    s.shop.push({ id:safeId(), name:nm, icon:iconFor(nm), eligible:allEligible.slice(), pos:0, idx:allEligible[0] ?? 0, needed:false, lastBought:null });
+  }
+  save(s);
+}
+
+/* ------------------ Stats ------------------ */
+function clearHistory(){
+  const s = load();
+  if(!confirm("Clear history? This removes stats and recent activity.")) return;
+  s.history = [];
+  save(s);
+}
+function computeStats(){
+  const s = load();
+  const mates = s.mates;
+  const chores7 = s.history.filter(h => h.kind === "chore" && withinDays(h.ts, 7));
+  const shop7 = s.history.filter(h => h.kind === "shop" && withinDays(h.ts, 7));
+
+  const sumByMate7 = new Array(mates.length).fill(0);
+  for(const h of s.history.filter(h => withinDays(h.ts, 7))){
+    if(typeof h.who === "number" && h.who >= 0 && h.who < mates.length) sumByMate7[h.who] += 1;
+  }
+  return { s, mates, chores7, shop7, sumByMate7 };
+}
+
+/* ------------------ Render ------------------ */
+function renderHome(){
+  const s = load();
+
+  // Chores
+  const choresList = document.getElementById("choresList");
+  if(!s.chores.length){
+    choresList.innerHTML = `<div class="small">No chores yet. Add them in Settings.</div>`;
+  } else {
+    const sorted = s.chores.slice().sort((a,b) => a.next - b.next);
+    choresList.innerHTML = sorted.map(c => {
+      const [txt, pillCls, bgCls] = dueTextAndClass(c.next);
+      const who = s.mates[c.idx] ?? "—";
+      return `
+        <div class="chore ${bgCls}">
+          <div class="chore-rows">
+            <div class="chore-left-top">
+              <span class="icon">${c.icon || "🧹"}</span>
+              <span class="name">${c.name}</span>
+            </div>
+            <div class="assignee">
+              <div class="label">Assigned to</div>
+              <div class="name">${who}</div>
+            </div>
+            <div class="chore-left-bottom">
+              <span class="pill ${pillCls}">${txt}</span>
+            </div>
+            <div class="chore-right-bottom">
+              <div class="chore-actions">
+                <button onclick="completeChore('${c.id}')">Complete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // Shopping
+  const grid = document.getElementById("shopGrid");
+  if(!s.shop.length){
+    grid.innerHTML = `<div class="small">No shopping items yet. Add them in Settings.</div>`;
+  } else {
+    const items = s.shop.slice().sort((a,b) => (b.needed===true) - (a.needed===true));
+    grid.innerHTML = items.map(it => {
+      const who = s.mates[it.idx] ?? "—";
+      return `
+        <div class="shopcard ${it.needed ? "needed" : ""}">
+          <div class="shop-top">
+            <div class="shop-name">
+              <span class="icon">${it.icon || "🛒"}</span>
+              <span>${it.name}</span>
+            </div>
+            <div class="shop-next">
+              <div class="label">Next to buy</div>
+              <div class="name">${who}</div>
+            </div>
+          </div>
+          <div class="shop-actions">
+            <button class="${it.needed ? "btn-ghost" : "btn-warn"}" onclick="toggleNeed('${it.id}')">
+              ${it.needed ? "Not needed" : "Need"}
+            </button>
+            <button onclick="boughtItem('${it.id}')">Bought</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+}
+
+function renderStats(){
+  const { s, mates, chores7, shop7, sumByMate7 } = computeStats();
+  document.getElementById("kpiChores7").textContent = String(chores7.length);
+  document.getElementById("kpiShop7").textContent = String(shop7.length);
+  document.getElementById("kpiChores7s").textContent = mates.length ? `Across ${mates.length} housemate(s)` : "Add housemates in Settings";
+  document.getElementById("kpiShop7s").textContent = mates.length ? `Across ${mates.length} housemate(s)` : "Add housemates in Settings";
+
+  const lb = document.getElementById("leaderboard");
+  if(!mates.length){
+    lb.innerHTML = `<div class="small">Add housemates to see stats.</div>`;
+  } else {
+    const rows = mates.map((name, idx) => ({ name, idx, count: sumByMate7[idx] || 0 }))
+      .sort((a,b) => b.count - a.count);
+
+    lb.innerHTML = rows.map(r => `
+      <div class="item">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <div style="font-weight:950;">${r.name}</div>
+          <div><span class="pill ok">${r.count} done</span></div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  const recent = document.getElementById("recentActivity");
+  if(!s.history.length){
+    recent.innerHTML = `<div class="small">No activity yet.</div>`;
+  } else {
+    const top = s.history.slice(0, 30);
+    recent.innerHTML = top.map(h => {
+      const who = (typeof h.who === "number" && mates[h.who]) ? mates[h.who] : "—";
+      const kind = (h.kind === "shop") ? "🛒 Bought" : "✅ Completed";
+      const date = new Date(h.ts).toISOString().slice(0,10);
+      return `
+        <div class="item">
+          <div class="small"><b>${date}</b> · ${kind}</div>
+          <div style="font-weight:950;margin-top:4px;">${h.name}</div>
+          <div class="small" style="margin-top:4px;">By: <b>${who}</b></div>
+        </div>
+      `;
+    }).join("");
+  }
+}
+
+function renderSettings(){
+  const s = load();
+
+  const matesDiv = document.getElementById("matesList");
+  matesDiv.innerHTML = s.mates.length
+    ? s.mates.map((m, i) => `
+        <span class="mate">${m}
+          <a href="#" onclick="removeMate(${i});return false;" style="margin-left:8px;color:#2563eb;text-decoration:none;">remove</a>
+        </span>
+      `).join("")
+    : `<div class="small">No housemates yet.</div>`;
+
+  renderEligiblePicker();
+  renderShopEligiblePicker();
+
+  const manage = document.getElementById("manageChores");
+  if(!s.chores.length){
+    manage.innerHTML = `<div class="small">No chores yet.</div>`;
+  } else {
+    const sorted = s.chores.slice().sort((a,b)=>a.next-b.next);
+    manage.innerHTML = sorted.map(c => {
+      const [txt, pillCls] = dueTextAndClass(c.next);
+      const who = s.mates[c.idx] ?? "—";
+      const eligibleNames = (c.eligible || []).map(i => s.mates[i]).filter(Boolean).join(", ");
+      const sched = (c.type === "frequency") ? `Every ${c.freq} days` : `Fixed · Every ${c.weeks} week(s) · Start: ${c.anchor}`;
+      return `
+        <div class="item">
+          <div class="item-title"><span class="icon">${c.icon || "🧹"}</span><span>${c.name}</span></div>
+          <div class="item-meta small">
+            <div><b>Schedule:</b> ${sched}</div>
+            <div><b>Status:</b> <span class="pill ${pillCls}">${txt}</span></div>
+            <div><b>Assigned:</b> ${who}</div>
+            <div><b>Eligible:</b> ${eligibleNames || "—"}</div>
+          </div>
+          <div class="row" style="gap:10px;margin-top:10px;">
+            <button class="btn-ghost" onclick="rotateChore('${c.id}')">Rotate</button>
+            <button class="btn-danger" onclick="deleteChore('${c.id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  const manageShop = document.getElementById("manageShopping");
+  if(!s.shop.length){
+    manageShop.innerHTML = `<div class="small">No shopping items yet.</div>`;
+  } else {
+    manageShop.innerHTML = s.shop.map(it => {
+      const who = s.mates[it.idx] ?? "—";
+      const eligibleNames = (it.eligible || []).map(i => s.mates[i]).filter(Boolean).join(", ");
+      const tag = it.needed ? `<span class="pill due">Needed</span>` : `<span class="pill ok">Not needed</span>`;
+      return `
+        <div class="item">
+          <div class="item-title"><span class="icon">${it.icon || "🛒"}</span><span>${it.name}</span></div>
+          <div class="item-meta small">
+            <div><b>Status:</b> ${tag}</div>
+            <div><b>Next buyer:</b> ${who}</div>
+            <div><b>Eligible:</b> ${eligibleNames || "—"}</div>
+          </div>
+          <div class="row" style="gap:10px;margin-top:10px;">
+            <button class="btn-ghost" onclick="rotateShop('${it.id}')">Rotate</button>
+            <button class="btn-danger" onclick="deleteShop('${it.id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+}
+
+function renderAll(){
+  renderHome();
+  renderStats();
+  renderSettings();
+}
+
+/* ------------------ Reset ------------------ */
+function resetAll(){
+  if(!confirm("Reset all data? This cannot be undone.")) return;
+  localStorage.removeItem(KEY);
+  renderAll();
+}
+
+/* ------------------ Init ------------------ */
+(function init(){
+  toggleType();
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
