@@ -321,9 +321,11 @@ hr.sep{border:none;border-top:1px solid var(--line);margin:12px 0}
 /* ------------------ Data ------------------ */
 const KEY = "house_app_v6"; // bumped so your new version doesn't clash with old saved data
 function safeId(){
-  return (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const hasCrypto = (typeof crypto !== "undefined");
+  if (hasCrypto && crypto.randomUUID) return crypto.randomUUID();
+  return (Date.now().toString(36) + Math.random().toString(36).slice(2));
 }
-function load(){
+  function load(){
   return JSON.parse(localStorage.getItem(KEY) || '{"globalStart":"","mates":[],"chores":[],"shop":[],"history":[]}');
 }
 function save(s){
