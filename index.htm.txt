@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chore Rotator</title>
+  <style>
+    body{font-family:system-ui, sans-serif; margin:20px; max-width:760px}
+    input, button{font-size:16px; padding:8px; margin:4px 0}
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+    .card{border:1px solid #ddd; border-radius:10px; padding:12px; margin:10px 0}
+    .small{color:#666; font-size:13px}
+    button{cursor:pointer}
+  </style>
+</head>
+<body>
+  <h2>Chore Rotator</h2>
+  <div class="card">
+    <h3>Housemates</h3>
+    <div class="row">
+      <input id="mateName" placeholder="Add housemate name" />
+      <button onclick="addMate()">Add</button>
+    </div>
+    <div id="mates" class="small"></div>
+  </div>
+
+  <div class="card">
+    <h3>Chores</h3>
+    <div class="row">
+      <input id="choreName" placeholder="Chore name (e.g., bins)" />
+      <input id="freqDays" type="number" min="1" value="7" title="Frequency (days)" />
+      <button onclick="addChore()">Add</button>
+    </div>
+    <div class="small">Frequency is in days (7 = weekly, 1 = daily).</div>
+  </div>
+
+  <div class="card">
+    <h3>Today</h3>
+    <div id="today"></div>
+  </div>
+
+  <div class="card">
+    <h3>History</h3>
+    <div id="history" class="small"></div>
+  </div>
+
+  <button onclick="resetAll()" style="background:#fff;border:1px solid #f33;color:#f33;border-radius:10px;padding:10px 14px">
+    Reset everything
+  </button>
+
+<script>
+const KEY="chore_rotator_v1";
+
+function load(){
+  return JSON.parse(localStorage.getItem(KEY) || '{"mates":[],"chores":[],"history":[]}');
+}
+function save(state){
+  localStorage.setItem(KEY, JSON.stringify(state));
+  render();
+}
+function fmtDate(d){ return new Date(d).toISOString().slice(0,10); }
+function nowISO(){ return new Date().toISOString(); }
+
+function addMate(){
+  const name = document.getElementById('mateName').value.trim();
+  if(!name) return;
+  const s=load();
+  if(s.mates.includes(name)) return alert("Already added.");
+  s.mates.push(name);
+  document.getElementById('mateName').value="";
+  save(s);
+}
+function removeMate(name){
+  const s=load();
+  s.mates = s.mates.filter(m=>m!==name);
+  // keep chores but prevent assignment if no mates
+  save(s);
+}
+
+function addChore(){
+  const name = document.getElementById('choreName').value.trim();
+  const freq = parseInt(document.getElementById('freqDays').value,10);
+  if(!name || !freq || freq<1) return;
+  const s=load();
+  if(s.choreName === name) return;
+  const startIndex = 0;
+  const assignee = s.mates[startIndex] || null;
+  s.chores.push({
+    id: crypto.randomUUID(),
+    name,
+    freqDays: freq,
+    nextDue: nowISO(),
+    rotateIndex: startIndex,
+    assignee
+  });
+  document.getElementById('choreName').value="";
+  save(s);
+}
+function removeChore(id){
+  const s=load();
+  s.chores = s.chores.filter(c=>c.id!==id);
+  save(s);
+}
+
+function rotateToNext(chore, mates){
+  if(!mates.length){ chore.assignee=null; return; }
+  chore.rotateIndex = (chore.rotateIndex + 1) % mates.length;
+  chore.assignee = mates[chore.rotateIndex];
+}
+
+function completeChore(id){
+  const s=load();
+  const c=s.chores.find(x=>x.id===id);
+  if(!c) return;
+  const who = c.assignee || "(unassigned)";
+  s.history.unshift({ when: nowISO(), chore: c.name, who });
+  // set next due
+  const next = new Date();
+  next.setDate(next.getDate() + c.freqDays);
+  c.nextDue = next.toISOString();
+  // rotate assignee
+  rotateToNext(c, s.mates);
+  save(s);
+}
+
+function forceReassign(id){
+  const s=load();
+  const c=s.chores.find(x=>x.id===id);
+  if(!c) return;
+  rotateToNext(c, s.mates);
+  save(s);
+}
+
+function resetAll(){
+  if(!confirm("Reset all data?")) return;
+  localStorage.removeItem(KEY);
+  render();
+}
+
+function render(){
+  const s=load();
+
+  // mates
+  const matesDiv=document.getElementById('mates');
+  matesDiv.innerHTML = s.mates.length
+    ? s.mates.map(m=>`<span style="margin-right:10px">👤 ${m} <a href="#" onclick="removeMate('${m.replace(/'/g,"\\'")}');return false;">remove</a></span>`).join("")
+    : "No housemates yet.";
+
+  // today chores due
+  const todayDiv=document.getElementById('today');
+  const today = new Date();
+  const due = s.chores
+    .slice()
+    .sort((a,b)=>new Date(a.nextDue)-new Date(b.nextDue))
+    .map(c=>{
+      const dueDate = new Date(c.nextDue);
+      const isDue = dueDate <= today;
+      return `
+        <div class="card" style="background:${isDue?'#fff7f7':'#f7fff7'}">
+          <div><b>${c.name}</b> (${c.freqDays}d)</div>
+          <div class="small">Assigned: <b>${c.assignee ?? '—'}</b> · Due: ${fmtDate(c.nextDue)}</div>
+          <div class="row">
+            <button onclick="completeChore('${c.id}')">Complete</button>
+            <button onclick="forceReassign('${c.id}')">Rotate assignee</button>
+            <button onclick="removeChore('${c.id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+  todayDiv.innerHTML = due.length ? due.join("") : "No chores yet.";
+
+  // history
+  const histDiv=document.getElementById('history');
+  histDiv.innerHTML = s.history.length
+    ? s.history.slice(0,30).map(h=>`• ${fmtDate(h.when)} — ${h.chore} done by <b>${h.who}</b>`).join("<br>")
+    : "No history yet.";
+}
+
+render();
+</script>
+</body>
+</html>
