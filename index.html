@@ -584,17 +584,29 @@ function completeChore(id){
   const s = load();
   const c = s.chores.find(x => x.id === id);
   if(!c) return;
-  const who = s.mates[c.idx] ?? "—";
-  if(!confirm(`Mark "${c.name}" as completed by ${who}?`)) return;
 
+  const completedBy = s.mates[c.idx] ?? "—";
+  if(!confirm(`Mark "${c.name}" as completed by ${completedBy}?`)) return;
+
+  // 1️⃣ Rotate to next person FIRST
+  rotateAssignee(c);
+
+  // 2️⃣ Update next due date
   if(c.type === "frequency"){
     c.next = Date.now() + (c.freq || 1) * 86400000;
   } else {
     c.next = computeNextFromAnchor(c.anchor, c.weeks || 1);
   }
 
-  s.history.unshift({ id: safeId(), ts: Date.now(), kind: "chore", who: c.idx, name: c.name });
-  rotateAssignee(c);
+  // 3️⃣ Log history (credit the person who just finished it)
+  s.history.unshift({
+    id: safeId(),
+    ts: Date.now(),
+    kind: "chore",
+    who: (c.pos - 1 + c.eligible.length) % c.eligible.length,
+    name: c.name
+  });
+
   save(s);
 }
 
